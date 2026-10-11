@@ -1,107 +1,128 @@
 """
-Generate a weekly newsletter from classified items.
-Outputs Markdown and HTML.
+Generate the SEC weekly newsletter from classified items.
+Outputs Markdown (for editing) and HTML (Mailchimp-ready).
 """
 
-import os
+import json
 import re
 from datetime import datetime
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 
-# Display order and grouping for sections
 SECTION_ORDER = [
-    ("Events & Talks", ["event", "talk", "conference", "workshop"]),
-    ("Jobs & Fellowships", ["job"]),
-    ("Networking & Social", ["networking", "field_trip"]),
-    ("Deadlines & Funding", ["deadline"]),
+    ("Events", ["event", "talk", "conference", "workshop", "networking", "field_trip"]),
+    ("Opportunities", ["job", "deadline"]),
+]
+
+DAYS_OF_WEEK = [
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
 ]
 
 
-def make_snippet(description, max_len=200):
-    """Create a short plain-text snippet from description."""
-    if not description:
-        return ""
-    # Collapse whitespace
-    text = re.sub(r"\s+", " ", description).strip()
-    if len(text) <= max_len:
-        return text
-    return text[:max_len].rsplit(" ", 1)[0] + "..."
+def format_when(item):
+    """Format the WHEN line from item data."""
+    dt = item.get("start")
+    if not dt:
+        return item.get("when", "")
+    parts = [dt.strftime("%A, %B %-d")]
+    if dt.hour or dt.minute:
+        parts[0] += dt.strftime(", %-I:%M")
+        end = item.get("end")
+        if end and (end.hour or end.minute):
+            parts[0] += end.strftime("–%-I:%M %p")
+        else:
+            parts[0] += dt.strftime(" %p")
+    return parts[0]
+
+
+def format_who(item):
+    """Format the WHO line. Falls back to a sensible default."""
+    if item.get("who"):
+        return item["who"]
+    if item.get("speaker"):
+        return item["speaker"]
+    return ""
+
+
+def prepare_item(item):
+    """Enrich an item with formatted fields for the template."""
+    item["when"] = item.get("when") or format_when(item)
+    item["who"] = format_who(item)
+    item["where"] = item.get("location") or item.get("where", "")
+    item["is_opportunity"] = item.get("category") in ("job", "deadline")
+
+    desc = item.get("description", "")
+    desc = re.sub(r"\s+", " ", desc).strip()
+    if len(desc) > 500:
+        desc = desc[:500].rsplit(" ", 1)[0] + "..."
+    item["description"] = desc
+    return item
 
 
 def group_items(items):
-    """Group items into newsletter sections. Returns list of (section_name, items)."""
+    """Group items into Events and Opportunities sections."""
     assigned = set()
     sections = []
 
     for section_name, types in SECTION_ORDER:
         section_items = [
-            item for item in items
+            prepare_item(item) for item in items
             if item.get("category") in types and id(item) not in assigned
         ]
+        for item in section_items:
+            assigned.add(id(item))
         if section_items:
-            for item in section_items:
-                assigned.add(id(item))
-                item["snippet"] = make_snippet(item.get("description", ""))
-            sections.append((section_name, section_items))
+            sections.append({"name": section_name, "items": section_items})
 
-    # Catch-all for anything not matched
-    remaining = [item for item in items if id(item) not in assigned]
+    remaining = [prepare_item(item) for item in items if id(item) not in assigned]
     if remaining:
-        for item in remaining:
-            item["snippet"] = make_snippet(item.get("description", ""))
-        sections.append(("Other", remaining))
+        sections.append({"name": "More", "items": remaining})
 
     return sections
 
 
-def render_markdown(title, subtitle, sections):
-    """Render newsletter as Markdown."""
-    lines = [f"# {title}", f"*{subtitle}*", ""]
+def render_markdown(greeting, intro, sections):
+    """Render newsletter as Markdown for easy editing."""
+    lines = [f"**{greeting}**", "", intro, ""]
 
-    for section_name, items in sections:
-        lines.append(f"## {section_name} ({len(items)})")
+    for section in sections:
+        lines.append(f"---")
+        lines.append(f"## {section['name']}")
         lines.append("")
-        for item in items:
-            badge = f"[{item['category'].replace('_', ' ').upper()}]"
+        for item in section["items"]:
+            lines.append(f"**{item['title']}**")
+            lines.append("")
+            if item.get("who"):
+                lines.append(f"**WHO:** {item['who']}  ")
+            if item.get("when"):
+                lines.append(f"**WHEN:** {item['when']}  ")
+            if item.get("where"):
+                lines.append(f"**WHERE:** {item['where']}  ")
             if item.get("url"):
-                lines.append(f"### [{item['title']}]({item['url']}) {badge}")
-            else:
-                lines.append(f"### {item['title']} {badge}")
-
-            meta_parts = []
-            if item.get("start"):
-                meta_parts.append(item["start"].strftime("%a, %b %-d"))
-                if item["start"].hour:
-                    meta_parts[-1] += item["start"].strftime(" at %-I:%M %p")
-            if item.get("location"):
-                meta_parts.append(item["location"])
-            if meta_parts:
-                lines.append(" | ".join(meta_parts))
-
-            if item.get("snippet"):
-                lines.append("")
-                lines.append(f"> {item['snippet']}")
+                label = "Apply" if item.get("is_opportunity") else "RSVP"
+                lines.append(f"**{label}:** [{label} here]({item['url']})  ")
+            lines.append("")
+            if item.get("description"):
+                lines.append(item["description"])
             lines.append("")
 
-    if not sections:
-        lines.append("*No events found for this period.*")
-
     lines.append("---")
-    lines.append(f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}*")
+    lines.append("")
+    lines.append("Want to stay updated on all the energy events and projects happening on campus? "
+                 "Sign up for our [mailing list](https://mailman.stanford.edu/mailman/listinfo/energyclub-members) "
+                 "and follow us on [Instagram](https://www.instagram.com/stanford.energy.club/).")
     return "\n".join(lines)
 
 
-def render_html(title, subtitle, sections, template_dir="templates"):
-    """Render newsletter as HTML using Jinja2 template."""
-    env = Environment(loader=FileSystemLoader(template_dir))
+def render_html(greeting, intro, sections, template_dir="templates"):
+    """Render newsletter as Mailchimp-ready HTML."""
+    env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
     template = env.get_template("newsletter.html")
     return template.render(
-        title=title,
-        subtitle=subtitle,
+        greeting=greeting,
+        intro=intro,
         sections=sections,
-        generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
     )
 
 
@@ -112,23 +133,24 @@ def generate_newsletter(items, output_dir="output", days=14):
 
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
-    title = "Climate & Sustainability Weekly"
-    subtitle = f"Events, jobs, and opportunities — Week of {now.strftime('%B %-d, %Y')}"
+    day_name = DAYS_OF_WEEK[now.weekday()]
+
+    greeting = f"Happy {day_name}, Energy Enthusiasts."
+    intro = ("Read on for a curated set of events this week alongside "
+             "our pick of exciting opportunities.")
 
     sections = group_items(items)
 
-    # Markdown
-    md = render_markdown(title, subtitle, sections)
+    md = render_markdown(greeting, intro, sections)
     md_path = output / f"newsletter-{date_str}.md"
     md_path.write_text(md)
     print(f"  Wrote: {md_path}")
 
-    # HTML
-    html = render_html(title, subtitle, sections)
+    html = render_html(greeting, intro, sections)
     html_path = output / f"newsletter-{date_str}.html"
     html_path.write_text(html)
     print(f"  Wrote: {html_path}")
 
-    total = sum(len(items) for _, items in sections)
+    total = sum(len(s["items"]) for s in sections)
     print(f"  Newsletter has {total} items across {len(sections)} sections.")
     return md_path, html_path

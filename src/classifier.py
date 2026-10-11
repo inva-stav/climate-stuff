@@ -161,16 +161,19 @@ def classify_items(items):
     """Filter for relevance and assign types. Returns only relevant items."""
     results = []
     for item in items:
-        # Events from stanford scraper are already keyword-filtered,
-        # but emails need relevance checking
-        if item.get("source", "").startswith("email:") and not is_relevant(item):
+        source = item.get("source", "")
+        # Stanford scraper results are already keyword-filtered.
+        # Pre-extracted items (from Outlook via Claude) have source "outlook"
+        # and are already curated, so skip relevance check for those too.
+        needs_check = source.startswith("email:") and source != "outlook"
+        if needs_check and not is_relevant(item):
             print(f"  Skipping (not relevant): {item['title'][:60]}")
             continue
 
-        item["category"] = classify_type(item)
+        if not item.get("category"):
+            item["category"] = classify_type(item)
         results.append(item)
 
-    # Count by type
     type_counts = {}
     for item in results:
         t = item["category"]
