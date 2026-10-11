@@ -115,7 +115,7 @@ def render_markdown(greeting, intro, sections):
     return "\n".join(lines)
 
 
-def render_html(greeting, intro, sections, template_dir="templates"):
+def render_html(greeting, intro, sections, template_dir="templates", logo_url=None):
     """Render newsletter as Mailchimp-ready HTML."""
     env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
     template = env.get_template("newsletter.html")
@@ -123,10 +123,11 @@ def render_html(greeting, intro, sections, template_dir="templates"):
         greeting=greeting,
         intro=intro,
         sections=sections,
+        logo_url=logo_url,
     )
 
 
-def generate_newsletter(items, output_dir="output", days=14):
+def generate_newsletter(items, output_dir="output", days=14, logo_url=None):
     """Generate both Markdown and HTML newsletter files."""
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -146,7 +147,7 @@ def generate_newsletter(items, output_dir="output", days=14):
     md_path.write_text(md)
     print(f"  Wrote: {md_path}")
 
-    html = render_html(greeting, intro, sections)
+    html = render_html(greeting, intro, sections, logo_url=logo_url)
     html_path = output / f"newsletter-{date_str}.html"
     html_path.write_text(html)
     print(f"  Wrote: {html_path}")

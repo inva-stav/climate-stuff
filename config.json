@@ -3,7 +3,8 @@
     "name": "Stanford Energy Club Newsletter",
     "send_day": "Monday",
     "greeting_template": "Happy {day}, Energy Enthusiasts.",
-    "intro": "Read on for a curated set of events this week alongside our pick of exciting opportunities."
+    "intro": "Read on for a curated set of events this week alongside our pick of exciting opportunities.",
+    "logo_url": null
   },
 
   "outlook_sources": {

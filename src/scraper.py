@@ -7,8 +7,10 @@ from datetime import datetime, timedelta
 from dateutil import parser as dateparser
 
 
-# Keywords that indicate climate/sustainability/energy relevance
+# Keyword searches — combining general terms with specific recurring series
+# that historically appear in SEC newsletters
 SEARCH_KEYWORDS = [
+    # Core topics
     "climate",
     "sustainability",
     "energy",
@@ -21,21 +23,29 @@ SEARCH_KEYWORDS = [
     "net zero",
     "circular economy",
     "ESG",
-    "green",
     "conservation",
     "biodiversity",
     "ecology",
     "resilience",
-    "water",
     "pollution",
     "fossil fuel",
-    "EV",
     "electric vehicle",
     "battery",
     "hydrogen",
     "nuclear",
     "wind power",
     "geothermal",
+    "biomass",
+    "environmental justice",
+    # Recurring series and orgs from past SEC newsletters
+    "Stanford Energy Seminar",
+    "Sustainable Systems",
+    "ESE Seminar",
+    "CEE 269",
+    "SustainX",
+    "Precourt",
+    "Doerr School",
+    "Explore Energy",
 ]
 
 API_BASE = "https://events.stanford.edu/api/2/events"
@@ -69,10 +79,14 @@ def fetch_events_for_keyword(keyword, days=14, max_pages=3):
 def normalize_event(raw):
     """Convert a raw Localist API event dict into a clean record."""
     event = raw.get("event", raw)
-    # Parse dates
-    start = event.get("event_instances", [{}])
-    if start:
-        start_str = start[0].get("event_instance", {}).get("start", "")
+
+    instances = event.get("event_instances", [])
+    start_str = ""
+    end_str = ""
+    if instances:
+        inst = instances[0].get("event_instance", {})
+        start_str = inst.get("start", "")
+        end_str = inst.get("end", "")
     else:
         start_str = event.get("first_date", "")
 
@@ -81,19 +95,46 @@ def normalize_event(raw):
     except (ValueError, TypeError):
         start_dt = None
 
+    try:
+        end_dt = dateparser.parse(end_str) if end_str else None
+    except (ValueError, TypeError):
+        end_dt = None
+
     location_name = event.get("location_name", "") or ""
     location = event.get("location", "") or ""
     room = event.get("room_number", "") or ""
     full_location = ", ".join(filter(None, [location_name, location, room]))
+
+    # Build WHO from filters/departments if available
+    who = ""
+    filters = event.get("filters", {})
+    departments = filters.get("departments", [])
+    if departments:
+        who = departments[0].get("name", "")
+
+    # Build a formatted WHEN string
+    when = ""
+    if start_dt:
+        when = start_dt.strftime("%A, %B %-d")
+        if start_dt.hour or start_dt.minute:
+            when += start_dt.strftime(", %-I:%M")
+            if end_dt and (end_dt.hour or end_dt.minute):
+                when += end_dt.strftime("–%-I:%M %p")
+            else:
+                when += start_dt.strftime(" %p")
 
     return {
         "title": event.get("title", "").strip(),
         "description": event.get("description_text", "").strip(),
         "url": event.get("localist_url", "") or event.get("url", ""),
         "start": start_dt,
+        "end": end_dt,
+        "when": when,
+        "who": who,
+        "where": full_location,
         "location": full_location,
         "source": "events.stanford.edu",
-        "category": None,  # filled in by classifier
+        "category": None,
         "raw_type": "event",
     }
 
