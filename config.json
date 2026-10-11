@@ -1,0 +1,54 @@
+{
+  "newsletter": {
+    "name": "Stanford Energy Club Newsletter",
+    "send_day": "Monday",
+    "greeting_template": "Happy {day}, Energy Enthusiasts.",
+    "intro": "Read on for a curated set of events this week alongside our pick of exciting opportunities."
+  },
+
+  "outlook_sources": {
+    "trusted_senders": [
+      {"name": "Katie Taflan Cerneka", "email": "ktaflanc@stanford.edu", "role": "Explore Energy / Precourt"},
+      {"name": "Griffin Clark", "email": "grclark@stanford.edu", "role": "SEC co-president"},
+      {"name": "Joyce Lee", "email": "jyklee@stanford.edu", "role": "Explore Energy Program Manager"},
+      {"name": "Brian Bartholomew", "email": null, "role": "TomKat Center (find email)"}
+    ],
+
+    "search_queries": [
+      {"query": "SEC newsletter", "description": "Direct newsletter content requests"},
+      {"query": "energy club newsletter", "description": "Items tagged for the newsletter"},
+      {"query": "energyclub-announcements", "description": "Mailing list posts to include"}
+    ],
+
+    "forward_tag": "[SEC]",
+    "forward_description": "Forward any email to yourself with [SEC] in the subject to add it to the pipeline.",
+
+    "lookback_days": 7,
+
+    "ignore_senders": [
+      "nytdirect@nytimes.com",
+      "breakingnews@nytimes.com",
+      "editorpicks@nytimes.com",
+      "access@interactive.wsj.com",
+      "digest@stanforddaily.com",
+      "no-reply@anthropic.com"
+    ]
+  },
+
+  "stanford_events": {
+    "enabled": true,
+    "days_ahead": 14,
+    "keywords": [
+      "climate", "sustainability", "energy", "environment", "carbon",
+      "renewable", "solar", "cleantech", "decarbonization", "net zero",
+      "ESG", "conservation", "biodiversity", "ecology", "resilience",
+      "electric vehicle", "battery", "hydrogen", "nuclear", "geothermal"
+    ]
+  },
+
+  "classification": {
+    "sections": ["Events", "Opportunities"],
+    "event_types": ["event", "talk", "conference", "workshop", "networking", "field_trip"],
+    "opportunity_types": ["job", "deadline"]
+  }
+}
