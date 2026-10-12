@@ -45,6 +45,25 @@ def format_who(item):
     return ""
 
 
+BOILERPLATE_PATTERNS = [
+    re.compile(
+        r"The Stanford Energy Seminar has been a mainstay.*?About the talk\s*",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    re.compile(
+        r"About the speaker\s*$",
+        re.IGNORECASE,
+    ),
+]
+
+
+def clean_description(desc):
+    """Strip recurring boilerplate preambles from event descriptions."""
+    for pattern in BOILERPLATE_PATTERNS:
+        desc = pattern.sub("", desc)
+    return desc.strip()
+
+
 def prepare_item(item):
     """Enrich an item with formatted fields for the template."""
     item["when"] = item.get("when") or format_when(item)
@@ -54,6 +73,7 @@ def prepare_item(item):
 
     desc = item.get("description", "")
     desc = re.sub(r"\s+", " ", desc).strip()
+    desc = clean_description(desc)
     item["description"] = desc
     return item
 
