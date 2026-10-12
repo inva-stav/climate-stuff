@@ -109,19 +109,8 @@ def main():
         print("No relevant items after classification. Nothing to generate.")
         sys.exit(0)
 
-    # Load logo URL from config if available
-    logo_url = None
-    try:
-        with open("config.json", "r") as f:
-            config = json.load(f)
-        logo_url = config.get("newsletter", {}).get("logo_url")
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
-
     # Generate
-    md_path, html_path = generate_newsletter(
-        classified, output_dir=args.output, days=args.days, logo_url=logo_url
-    )
+    md_path, html_path = generate_newsletter(classified, output_dir=args.output, days=args.days)
     print(f"\nDone! Newsletter files:")
     print(f"  Markdown: {md_path}")
     print(f"  HTML:     {html_path}")
