@@ -4,7 +4,7 @@
     "send_day": "Monday",
     "greeting_template": "Happy {day}, Energy Enthusiasts.",
     "intro": "Read on for a curated set of events this week alongside our pick of exciting opportunities.",
-    "logo_url": "assets/sec-logo.png"
+    "logo_url": "https://raw.githubusercontent.com/inva-stav/climate-stuff/main/assets/sec-logo.png"
   },
 
   "outlook_sources": {
