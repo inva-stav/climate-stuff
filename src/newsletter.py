@@ -45,23 +45,48 @@ def format_who(item):
     return ""
 
 
-BOILERPLATE_PATTERNS = [
-    re.compile(
-        r"The Stanford Energy Seminar has been a mainstay.*?About the talk\s*",
-        re.IGNORECASE | re.DOTALL,
-    ),
-    re.compile(
-        r"About the speaker\s*$",
-        re.IGNORECASE,
-    ),
-]
+ABOUT_MARKERS = re.compile(
+    r"About the (?:talk|event|session|presentation|seminar|lecture|workshop)\s*",
+    re.IGNORECASE,
+)
+
+TRAILING_MARKERS = re.compile(
+    r"\s*About the (?:speaker|presenter|panelist|series|author)s?[\s:]*.*$",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def clean_description(desc):
-    """Strip recurring boilerplate preambles from event descriptions."""
-    for pattern in BOILERPLATE_PATTERNS:
-        desc = pattern.sub("", desc)
+    """Extract the event-specific portion of a description.
+
+    Many Localist events prepend series boilerplate before an 'About the talk'
+    marker. This keeps only the content after such a marker (if found), and
+    strips trailing 'About the speaker' bios.
+    """
+    match = ABOUT_MARKERS.search(desc)
+    if match:
+        desc = desc[match.end():]
+    desc = TRAILING_MARKERS.sub("", desc)
     return desc.strip()
+
+
+def strip_shared_boilerplate(items):
+    """Remove description prefixes that appear across 3+ events (series boilerplate)."""
+    descs = [item.get("description", "") for item in items if item.get("description")]
+    if len(descs) < 3:
+        return
+    for length in (200, 150, 100, 50):
+        prefixes = [d[:length] for d in descs if len(d) >= length]
+        if not prefixes:
+            continue
+        from collections import Counter
+        counts = Counter(prefixes)
+        for prefix, count in counts.items():
+            if count >= 3:
+                for item in items:
+                    d = item.get("description", "")
+                    if d.startswith(prefix):
+                        item["description"] = d[len(prefix):].strip()
 
 
 def prepare_item(item):
@@ -80,6 +105,8 @@ def prepare_item(item):
 
 def group_items(items):
     """Group items into Events and Opportunities sections."""
+    strip_shared_boilerplate(items)
+
     assigned = set()
     sections = []
 
