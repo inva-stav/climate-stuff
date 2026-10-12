@@ -4,7 +4,7 @@
     "send_day": "Monday",
     "greeting_template": "Happy {day}, Energy Enthusiasts.",
     "intro": "Read on for a curated set of events this week alongside our pick of exciting opportunities.",
-    "logo_url": null
+    "logo_url": "assets/sec-logo.png"
   },
 
   "outlook_sources": {
@@ -12,7 +12,7 @@
       {"name": "Katie Taflan Cerneka", "email": "ktaflanc@stanford.edu", "role": "Explore Energy / Precourt"},
       {"name": "Griffin Clark", "email": "grclark@stanford.edu", "role": "SEC co-president"},
       {"name": "Joyce Lee", "email": "jyklee@stanford.edu", "role": "Explore Energy Program Manager"},
-      {"name": "Brian Bartholomew", "email": null, "role": "TomKat Center (find email)"}
+      {"name": "Brian Bartholomew", "email": "brianjb@stanford.edu", "role": "TomKat Center"}
     ],
 
     "search_queries": [
