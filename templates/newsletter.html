@@ -58,9 +58,9 @@
 <p style="margin:10px 0; line-height:19.5px;">
 <b>{{ item.title }}</b>
 </p>
-{% if item.who %}
+{% if item.who or item.when or item.where or item.url %}
 <p style="margin:10px 0; line-height:19.5px;">
-<b>WHO: </b>{{ item.who }}<br>
+{% if item.who %}<b>WHO: </b>{{ item.who }}<br>{% endif %}
 {% if item.when %}<b>WHEN: </b>{{ item.when }}<br>{% endif %}
 {% if item.where %}<b>WHERE: </b>{{ item.where }}<br>{% endif %}
 {% if item.url %}<b>{% if item.is_opportunity %}Apply{% else %}RSVP{% endif %}: </b><a href="{{ item.url }}" style="color:#007C89;">here</a>{% endif %}
