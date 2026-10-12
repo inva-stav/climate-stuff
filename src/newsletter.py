@@ -54,8 +54,6 @@ def prepare_item(item):
 
     desc = item.get("description", "")
     desc = re.sub(r"\s+", " ", desc).strip()
-    if len(desc) > 500:
-        desc = desc[:500].rsplit(" ", 1)[0] + "..."
     item["description"] = desc
     return item
 
